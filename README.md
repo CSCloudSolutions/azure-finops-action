@@ -4,7 +4,7 @@
 [![Version](https://img.shields.io/badge/version-v1.0.0-green.svg)](https://github.com/manny864/azure-finops-action/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Powered by CSCloudSolutions](https://img.shields.io/badge/Platform-CSCloudSolutions%20FinOps-0078D4?logo=microsoftazure)](https://finops.cscloudsolutions.com.ar)
-[![Powered by CSCloudSolutions](https://img.shields.io/badge/Website-CSCloudSolutions%20FinOps-0078D4?logo=microsoftazure)](https://cscloudsolutions.com.ar)
+[![Powered by CSCloudSolutions](https://img.shields.io/badge/Website-CSCloudSolutions?logo=microsoftazure)](https://cscloudsolutions.com.ar)
 Estimate the monthly Azure cost impact of your **Terraform**, **OpenTofu**, and **Azure Bicep** changes **directly inside your Pull Requests**, and optionally block expensive deployments with automated **Budget Gates**.
 
 ---
