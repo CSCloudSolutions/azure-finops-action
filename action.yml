@@ -1,5 +1,5 @@
 name: 'Azure FinOps Cost Estimator'
-description: 'Estima el impacto financiero en Azure de tus cambios de Terraform y Bicep en cada PR.'
+description: 'Estimate Azure costs for Terraform & Bicep in PRs and enforce automated Budget Gates.'
 author: 'CSCloudSolutions'
 
 branding:
@@ -8,49 +8,49 @@ branding:
 
 inputs:
   api-key:
-    description: 'API Key de la plataforma CSCloudSolutions FinOps con permiso write:shift-left. Pasar siempre por secrets.'
+    description: 'CSCloudSolutions FinOps API key with write:shift-left scope. Pass via secrets.'
     required: true
   tool:
-    description: 'Herramienta de IaC: terraform (defecto), tofu o bicep.'
+    description: 'IaC tool: terraform (default), tofu, or bicep.'
     required: false
     default: 'terraform'
   plan-file:
-    description: 'Plan binario generado por terraform/tofu plan -out=... (Ignorado si se pasa plan-json).'
+    description: 'Binary plan file from terraform/tofu plan -out=... (Ignored if plan-json is provided).'
     required: false
     default: 'tfplan.bin'
   plan-json:
-    description: 'Plan ya en JSON (terraform show -json), o salida de az deployment group what-if para Bicep.'
+    description: 'Plan formatted as JSON (terraform show -json) or az deployment group what-if output.'
     required: false
     default: ''
   threshold-usd:
-    description: 'Umbral maximo en USD/mes permitido para este PR. Si la plataforma tiene uno configurado, rige el mas estricto.'
+    description: 'Maximum monthly delta in USD/month. Strictest threshold between workflow and platform wins.'
     required: false
     default: ''
   comment:
-    description: 'Comentar el resultado en el Pull Request (actualiza el comentario existente por push). Requiere pull-requests: write.'
+    description: 'Comment results on Pull Request (updates sticky comment on push). Requires pull-requests: write.'
     required: false
     default: 'true'
   api-url:
-    description: 'URL base de la plataforma CSCloudSolutions FinOps.'
+    description: 'Base platform endpoint URL.'
     required: false
     default: 'https://finops.cscloudsolutions.com.ar'
   script-sha256:
-    description: 'SHA-256 esperado del script de estimacion. Recomendado para entornos de maxima seguridad.'
+    description: 'Expected SHA-256 hash of estimation script.'
     required: false
     default: ''
 
 outputs:
   delta-usd:
-    description: 'Delta de costo mensual en USD (negativo si el PR ahorra costo).'
+    description: 'Monthly cost delta in USD (negative if PR saves money).'
     value: ${{ steps.estimar.outputs.delta }}
   projected-usd:
-    description: 'Costo mensual proyectado total en USD.'
+    description: 'Total projected monthly cost in USD.'
     value: ${{ steps.estimar.outputs.projected }}
   unpriced:
-    description: 'Cantidad de recursos no tarifables o cobrados por consumo.'
+    description: 'Number of unpriced or usage-based resources.'
     value: ${{ steps.estimar.outputs.unpriced }}
   gate-status:
-    description: 'Estado del Budget Gate: OK, EXCEEDED o NOT_EVALUATED.'
+    description: 'Budget Gate status: OK, EXCEEDED, or NOT_EVALUATED.'
     value: ${{ steps.estimar.outputs.gate }}
 
 runs:
@@ -59,6 +59,7 @@ runs:
     - id: estimar
       shell: bash
       env:
+        ACTION_PATH: ${{ github.action_path }}
         FINOPS_API_KEY: ${{ inputs.api-key }}
         GITHUB_TOKEN: ${{ github.token }}
         FINOPS_REPOSITORY: ${{ github.repository }}
@@ -74,8 +75,8 @@ runs:
         SCRIPT_SHA256: ${{ inputs.script-sha256 }}
       run: |
         set -euo pipefail
-        if [ -f "${{ github.action_path }}/finops-estimate.sh" ] && [ "${FINOPS_API_URL}" = "https://finops.cscloudsolutions.com.ar" ] && [ -z "$SCRIPT_SHA256" ]; then
-          script="${{ github.action_path }}/finops-estimate.sh"
+        if [ -n "${ACTION_PATH:-}" ] && [ -f "${ACTION_PATH}/finops-estimate.sh" ] && [ "${FINOPS_API_URL}" = "https://finops.cscloudsolutions.com.ar" ] && [ -z "$SCRIPT_SHA256" ]; then
+          script="${ACTION_PATH}/finops-estimate.sh"
         else
           script="$RUNNER_TEMP/finops-estimate.sh"
           curl -fsSL "${FINOPS_API_URL%/}/integrations/shift-left/finops-estimate.sh" -o "$script"
