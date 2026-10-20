@@ -56,7 +56,7 @@ jobs:
           terraform plan -input=false -out=tfplan.bin
 
       - name: Run Azure FinOps Cost Estimator
-        uses: manny864/azure-finops-action@v1
+        uses: cscloudsolutions/azure-finops-action@v1
         with:
           api-key: ${{ secrets.FINOPS_API_KEY }}
           plan-file: tfplan.bin
@@ -98,7 +98,7 @@ jobs:
             --no-pretty-print > whatif.json
 
       - name: Estimate Bicep Cost
-        uses: manny864/azure-finops-action@v1
+        uses: cscloudsolutions/azure-finops-action@v1
         with:
           api-key: ${{ secrets.FINOPS_API_KEY }}
           tool: bicep
