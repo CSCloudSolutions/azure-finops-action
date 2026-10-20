@@ -1,0 +1,86 @@
+name: 'Azure FinOps Cost Estimator'
+description: 'Estima el impacto financiero en Azure de tus cambios de Terraform y Bicep en cada Pull Request y bloquea cambios fuera de presupuesto (Budget Gates).'
+author: 'CSCloudSolutions'
+
+branding:
+  icon: 'dollar-sign'
+  color: 'blue'
+
+inputs:
+  api-key:
+    description: 'API Key de la plataforma CSCloudSolutions FinOps con permiso write:shift-left. Pasar siempre por secrets.'
+    required: true
+  tool:
+    description: 'Herramienta de IaC: terraform (defecto), tofu o bicep.'
+    required: false
+    default: 'terraform'
+  plan-file:
+    description: 'Plan binario generado por terraform/tofu plan -out=... (Ignorado si se pasa plan-json).'
+    required: false
+    default: 'tfplan.bin'
+  plan-json:
+    description: 'Plan ya en JSON (terraform show -json), o salida de az deployment group what-if para Bicep.'
+    required: false
+    default: ''
+  threshold-usd:
+    description: 'Umbral maximo en USD/mes permitido para este PR. Si la plataforma tiene uno configurado, rige el mas estricto.'
+    required: false
+    default: ''
+  comment:
+    description: 'Comentar el resultado en el Pull Request (actualiza el comentario existente por push). Requiere pull-requests: write.'
+    required: false
+    default: 'true'
+  api-url:
+    description: 'URL base de la plataforma CSCloudSolutions FinOps.'
+    required: false
+    default: 'https://finops.cscloudsolutions.com.ar'
+  script-sha256:
+    description: 'SHA-256 esperado del script de estimacion. Recomendado para entornos de maxima seguridad.'
+    required: false
+    default: ''
+
+outputs:
+  delta-usd:
+    description: 'Delta de costo mensual en USD (negativo si el PR ahorra costo).'
+    value: ${{ steps.estimar.outputs.delta }}
+  projected-usd:
+    description: 'Costo mensual proyectado total en USD.'
+    value: ${{ steps.estimar.outputs.projected }}
+  unpriced:
+    description: 'Cantidad de recursos no tarifables o cobrados por consumo.'
+    value: ${{ steps.estimar.outputs.unpriced }}
+  gate-status:
+    description: 'Estado del Budget Gate: OK, EXCEEDED o NOT_EVALUATED.'
+    value: ${{ steps.estimar.outputs.gate }}
+
+runs:
+  using: 'composite'
+  steps:
+    - id: estimar
+      shell: bash
+      env:
+        FINOPS_API_KEY: ${{ inputs.api-key }}
+        GITHUB_TOKEN: ${{ github.token }}
+        FINOPS_REPOSITORY: ${{ github.repository }}
+        FINOPS_PR_NUMBER: ${{ github.event.pull_request.number }}
+        FINOPS_COMMIT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        FINOPS_AUTHOR: ${{ github.event.pull_request.user.login || github.actor }}
+        FINOPS_API_URL: ${{ inputs.api-url }}
+        FINOPS_TOOL: ${{ inputs.tool }}
+        FINOPS_PLAN_FILE: ${{ inputs.plan-file }}
+        FINOPS_PLAN_JSON: ${{ inputs.plan-json }}
+        FINOPS_THRESHOLD_USD: ${{ inputs.threshold-usd }}
+        FINOPS_COMMENT: ${{ inputs.comment }}
+        SCRIPT_SHA256: ${{ inputs.script-sha256 }}
+      run: |
+        set -euo pipefail
+        if [ -f "${{ github.action_path }}/finops-estimate.sh" ] && [ "${FINOPS_API_URL}" = "https://finops.cscloudsolutions.com.ar" ] && [ -z "$SCRIPT_SHA256" ]; then
+          script="${{ github.action_path }}/finops-estimate.sh"
+        else
+          script="$RUNNER_TEMP/finops-estimate.sh"
+          curl -fsSL "${FINOPS_API_URL%/}/integrations/shift-left/finops-estimate.sh" -o "$script"
+          if [ -n "$SCRIPT_SHA256" ]; then
+            echo "$SCRIPT_SHA256  $script" | sha256sum -c -
+          fi
+        fi
+        bash "$script"

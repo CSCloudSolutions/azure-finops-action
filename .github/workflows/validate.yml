@@ -1,0 +1,20 @@
+name: Validate Action
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate action.yml syntax
+        run: |
+          python3 -c "import yaml; yaml.safe_load(open('action.yml'))"
+          echo "action.yml is valid YAML"
+      - name: Check executable permissions
+        run: |
+          chmod +x finops-estimate.sh
+          bash -n finops-estimate.sh
+          echo "finops-estimate.sh syntax is valid"
