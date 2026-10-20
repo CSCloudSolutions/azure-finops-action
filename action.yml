@@ -1,5 +1,5 @@
 name: 'Azure FinOps Cost Estimator'
-description: 'Estima el impacto financiero en Azure de tus cambios de Terraform y Bicep en cada Pull Request y bloquea cambios fuera de presupuesto (Budget Gates).'
+description: 'Estima el impacto financiero en Azure de tus cambios de Terraform y Bicep en cada PR.'
 author: 'CSCloudSolutions'
 
 branding:
